@@ -9,6 +9,9 @@ accordingly:
 - `docker/qemu.sh` -> `docker/qemu-ubuntu-nostatic.sh`
 - `docker/linux-image.sh` -> `docker/linux-image_ubuntu2404.sh`
 
+Note that all of these kinds of custom changes that we don't see going upstream should go onto the `nureva-main` branch.
+This is the version we will use internally. For anything that can go upstream, it should be targeting `main`.
+
 ## How to build cross-compile image for Ubuntu 24.04 on `arm64`
 
 As from the instruction in the [`cross` wiki](https://github.com/cross-rs/cross/wiki/Contributing#building-and-testing),
