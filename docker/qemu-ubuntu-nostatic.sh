@@ -36,6 +36,10 @@ main() {
         libselinux1-dev \
         zlib1g-dev
 
+    # We don't use install_packages for this because anything in there is removed at the end of this script but we need
+    # these to run qemu when not building as static.
+    apt-get install libglib2.0-0t64
+
     # if we have python3.6+, we can install qemu 7.0.0, which needs ninja-build
     # ubuntu 16.04 only provides python3.5, so remove when we have a newer qemu.
     is_ge_python36=$(python3 -c "import sys; print(int(sys.version_info >= (3, 6)))")
