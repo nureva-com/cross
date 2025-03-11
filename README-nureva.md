@@ -17,3 +17,25 @@ This is the version we will use internally. For anything that can go upstream, i
 As from the instruction in the [`cross` wiki](https://github.com/cross-rs/cross/wiki/Contributing#building-and-testing),
 just need to run `cargo build-docker-image aarch64-unknown-linux-gnu_24.04`. This builds a tagged docker image called
 `ghcr.io/cross-rs/aarch64-unknown-linux-gnu_24.04:local`.
+
+## Publish to Nureva Azure Container Registry
+
+Since we want to share this `cross` image with the development team and build pipelines, we need to publish it when
+we have a new version. We rename the image so we can push to the Azure container registry and tag twice: for `latest`
+and the specific build date of the image, e.g. `20250311`.
+
+### Tagging
+
+```bash
+docker tag ghcr.io/cross-rs/aarch64-unknown-linux-gnu_24.04:local nurevaromedev.azurecr.io/cross-rs/aarch64-unknown-linux-gnu_24.04:latest
+docker tag ghcr.io/cross-rs/aarch64-unknown-linux-gnu_24.04:local nurevaromedev.azurecr.io/cross-rs/aarch64-unknown-linux-gnu_24.04:<build_date>
+```
+
+### Pushing
+
+```bash
+az login
+az acr login --name nurevaromedev
+docker push nurevaromedev.azurecr.io/cross-rs/aarch64-unknown-linux-gnu_24.04:latest
+docker push nurevaromedev.azurecr.io/cross-rs/aarch64-unknown-linux-gnu_24.04:<build_date>
+```
