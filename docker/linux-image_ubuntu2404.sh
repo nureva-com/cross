@@ -198,8 +198,11 @@ main() {
     # mv /etc/apt/sources.list /etc/apt/sources.list.bak
     # mv /etc/apt/sources.list.d /etc/apt/sources.list.d.bak
     # echo -e "${debsource}" >/etc/apt/sources.list
+    # Need to make sure the Architecture is set in ubuntu.sources so that we can pull in host architecture packages
+    # for when we need it.
+    sed -i -E "s/(Suites:.*$)/Architectures: ${dpkg_arch}\n\1/g" /etc/apt/sources.list.d/ubuntu.sources
     # archive.ubuntu.com is set by default for x86 version but arm64 is on ports.ubuntu.com so need to use that source
-    mv /etc/apt/sources.list.d/ubuntu.sources /etc/apt/sources.list.d/ubuntu.sources.bak
+    # as well
     cat <<'EOF' >/etc/apt/sources.list.d/ubuntu-arm64.sources
 Types: deb
 URIs: http://ports.ubuntu.com/ubuntu-ports
