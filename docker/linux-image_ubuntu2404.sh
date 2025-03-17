@@ -164,7 +164,7 @@ main() {
         ;;
     x86_64)
         arch=amd64
-        kernel="${kversion}-amd64"
+        kernel="${kversion}-generic"
         deps=(libcrypt1:"${arch}")
         ;;
     *)
@@ -192,22 +192,14 @@ main() {
         pushd "${libgcc_root}"
         apt-get -d --no-install-recommends download "${libgcc_packages[@]}"
         popd
-    fi
-
-    # Download packages
-    # mv /etc/apt/sources.list /etc/apt/sources.list.bak
-    # mv /etc/apt/sources.list.d /etc/apt/sources.list.d.bak
-    # echo -e "${debsource}" >/etc/apt/sources.list
-    # Need to make sure the Architecture is set in ubuntu.sources so that we can pull in host architecture packages
-    # for when we need it.
-    sed -i -E "s/(Suites:.*$)/Architectures: ${dpkg_arch}\n\1/g" /etc/apt/sources.list.d/ubuntu.sources
-    # archive.ubuntu.com is set by default for x86 version but arm64 is on ports.ubuntu.com so need to use that source
-    # as well
-    cat <<'EOF' >/etc/apt/sources.list.d/ubuntu-arm64.sources
+    else
+        # archive.ubuntu.com is set by default for x86 version but arm64 is on ports.ubuntu.com so need to use that source
+        # as well
+        cat <<EOF >/etc/apt/sources.list.d/ubuntu-${arch}.sources
 Types: deb
 URIs: http://ports.ubuntu.com/ubuntu-ports
 Suites: noble noble-updates noble-backports
-Architectures: arm64
+Architectures: ${arch}
 Components: main universe restricted multiverse
 Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
 
@@ -216,10 +208,15 @@ Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
 Types: deb
 URIs: http://ports.ubuntu.com/ubuntu-ports
 Suites: noble-security
-Architectures: arm64
+Architectures: ${arch}
 Components: main universe restricted multiverse
 Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
 EOF
+    fi
+
+    # Need to make sure the Architecture is set in ubuntu.sources so that we can pull in host architecture packages
+    # for when we need it.
+    sed -i -E "s/(Suites:.*$)/Architectures: ${dpkg_arch}\n\1/g" /etc/apt/sources.list.d/ubuntu.sources
 
     # Old ubuntu does not support --add-architecture, so we directly change multiarch file
     if [ -f /etc/dpkg/dpkg.cfg.d/multiarch ]; then
@@ -272,37 +269,9 @@ EOF
         "linux-image-${kernel}:${arch}" \
         ncurses-base"${ncurses}" \
         "zlib1g:${arch}"
-    # linux-image-6.8.0-31-generic:arm64
 
     if [[ "${arch}" != "${dpkg_arch}" ]]; then
         apt-get -d --no-install-recommends download "${libgcc_packages[@]}"
-    else
-        # host arch has conflicting versions of the packages installed
-        # this prevents us from downloading them, so we need to
-        # simply grab the last version from the debian sources.
-        # we're search for a paragraph with:
-        #   Maintainer: Debian
-        # but not
-        #   Original-Maintainer: Debian
-        #
-        # then, we extract the version record and download **only**
-        # packages matching that specific version.
-        local version_info
-        local version_record
-        local version
-        for package in "${libgcc_packages[@]}"; do
-            version_info=$(apt-cache show "${package}")
-            version_record=$(echo "${version_info}" | perl -n00e 'print if /^Maintainer: Debian/m')
-            version=$(echo "${version_record}" | grep 'Version: ' | cut -d ' ' -f 2)
-            apt-get -d --no-install-recommends download "${package}=${version}"
-        done
-
-        # now, if we don't remove the system installs, qemu-system won't
-        # be able to find these libgcc packages after building, since it
-        # will prefer the system packages, which it can't find later.
-        # removing these packages needs to occur after download via apt,
-        # since apt-get relies on libgcc_s1 and libstdc++6.
-        dpkg -r --force-depends "${libgcc_packages[@]}"
     fi
     cd /qemu
 
@@ -442,8 +411,7 @@ EOF
 
     # Clean up
     rm -rf "/qemu/${root}" "/qemu/${arch}"
-    rm /etc/apt/sources.list.d/ubuntu-arm64.sources
-    mv -f  /etc/apt/sources.list.d/ubuntu.sources.bak /etc/apt/sources.list.d/ubuntu.sources
+    rm /etc/apt/sources.list.d/ubuntu-${arch}.sources
     # mv -f /etc/apt/sources.list.d.bak /etc/apt/sources.list.d
     # if [ -f /etc/dpkg/dpkg.cfg.d/multiarch.bak ]; then
     #    mv /etc/dpkg/dpkg.cfg.d/multiarch.bak /etc/dpkg/dpkg.cfg.d/multiarch
